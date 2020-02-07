@@ -8,7 +8,6 @@ Created on Tue Feb 26 13:51:13 2019
 
 import os
 import numpy as np
-import pydicom
 import glob
 import cv2
 from matplotlib import pyplot as plt
@@ -120,6 +119,8 @@ def label_images(img_series, sliceTotal, stepsTotal):
     #    t_step-=1
     
 def show_coords(event, x, y, flags, param):
+    # WIP: Functionality need to be implemented properly. Currently not used in
+    #       in the program    
     print("Inside show_coords")
     for index in range (0, 30) :
         tkinter.Label(window, text = X[index]).grid(row = index+1, column = 1)
@@ -131,7 +132,7 @@ def loadImages(path):
     
     os.chdir(path)
     sliceList = glob.glob('*_tf2d18_retro_iPAT_*/')
-    os.chdir('../../')
+    os.chdir('../')
     sliceList = sorted(sliceList)
     sliceNoTotal = len(sliceList)
     t_StepsTotal = 25
@@ -171,11 +172,11 @@ def loadImages(path):
     return Images, rows, cols, channels, sliceNoTotal
 
 #=============================================================================
-#Initialization
+#   Initialization
 #=============================================================================
 
 #Specify the folder path of one particular patient 
-path = "./cineMRIFreiburg/20130328_143002_SymphonyTim_Freiburg_LQT_Kinder_TPM/"
+path = "./testDataset/"
 
 #Load your images in an array
 #loadImages command is case specific command which will arrange x-y-z-cine-slices 
@@ -199,57 +200,43 @@ Y_segment = np.zeros((6,sliceNoTotal))
 blank_images = np.zeros((rows, cols, channels)).astype(np.uint8)
 label_img = np.zeros((1,100))
 
+#WIP: Implementation of Tkinter co-ordinate table
+#
 #window = tkinter.Tk()
 #window.title("Image Labels")
 
 #============================================================================
-#   For loading existing settings
+#   Selection of Region of Interest and cropping of images
 #============================================================================
-import xlrd
-settings = xlrd.open_workbook(path + 'ManualTracking_results1/Preliminary_settings.xls')
-ROIval = settings.sheet_by_name("Pan Coordinates")
-Points = [(int(ROIval.cell_value(1,1)), int(ROIval.cell_value(1,2)))]
-Points.append((int(ROIval.cell_value(2,1)), int(ROIval.cell_value(2,2))))
+#   Option 1: For loading existing settings
+#----------------------------------------------------------------------------
+#import LoadSettings as LS
+#settingsFile = 'ManualTracking_results1/Preliminary_settings.xls'
+#[Points, CentX, CentY, SegX, SegY] = LS.readSettings(path, settingsFile, sliceNoTotal)
+#refPt = Points
 
-CentXY = settings.sheet_by_name("Centre Coordinates")
-CentX = np.zeros((sliceNoTotal,1)).astype(int)
-CentY = np.zeros((sliceNoTotal,1)).astype(int)
-
-for i in range(0,12):
-    CentX[i] = int(CentXY.cell_value(i+1,1)) - Points[0][0]
-    CentY[i] = int(CentXY.cell_value(i+1,2)) - Points[0][1]
-    
-SegVals = settings.sheet_by_name("Segmentation Coordinates")
-SegX = np.zeros((6,sliceNoTotal))
-SegY = np.zeros((6,sliceNoTotal))
-
-for i in range(0,6):
-    for j in range (0, sliceNoTotal):
-        SegX[i,j] = (float(SegVals.cell_value(i+2, 5*j + 1 )) - Points[0][0])
-        SegY[i,j] = (float(SegVals.cell_value(i+2, 5*j + 2 )) - Points[0][1])
-#=============================================================================
-#   Selection of Field of view
-#=============================================================================
+#-----------------------------------------------------------------------------
+#   Option 2: Manually selecting the of Field of view
+#-----------------------------------------------------------------------------
 refPt = []
 cropping = False
 
-#Loading the settings
-refPt = Points 
-
 #For manual selection of ROI
-#cv2.namedWindow('ROISelection', cv2.WINDOW_NORMAL)
-#cv2.setMouseCallback('ROISelection', click_and_crop)
-#
-## keep looping until the 'q' key is pressed
-#while(1):
-#    cv2.resizeWindow('ROISelection', 800, 800)
-#    cv2.imshow('ROISelection', images_Cine[:, :, :, (t_step%stepsTotal), (slice_no%sliceNoTotal)].astype(np.uint8))
-#    key = (cv2.waitKey(1) & 0xFF)
-#    if key == ord("c"):
-#        break
-#cv2.destroyAllWindows()
+cv2.namedWindow('ROISelection', cv2.WINDOW_NORMAL)
+cv2.setMouseCallback('ROISelection', click_and_crop)
+
+# keep looping until the 'q' key is pressed
+while(1):
+    cv2.resizeWindow('ROISelection', 800, 800)
+    cv2.imshow('ROISelection', images_Cine[:, :, :, (t_step%stepsTotal), (slice_no%sliceNoTotal)].astype(np.uint8))
+    key = (cv2.waitKey(1) & 0xFF)
+    if key == ord("c"):
+        break
+cv2.destroyAllWindows()
+
 #-----------------------------------------------------------------------------
- 
+#   Showing the cropped images in a new window
+#----------------------------------------------------------------------------- 
 if len(refPt) == 2:
     cropped_images_Cine = images_Cine[refPt[0][1]:refPt[1][1], 
                            refPt[0][0]:refPt[1][0], :, :, :]
@@ -268,45 +255,50 @@ plt.title('Image details: Image slice_no = ' + np.str(slice_no%sliceNoTotal) + '
 
 cropped_images_Cine_seg = cropped_images_Cine.copy()
 
-#For Loaded settings
-X_cent = CentX
-Y_cent = CentY
-X_segment = SegX
-Y_segment = SegY
+#----------------------------------------------------------------------------
+#   Option 1: For using the existing settings
+#----------------------------------------------------------------------------
+#X_cent = CentX
+#Y_cent = CentY
+#X_segment = SegX
+#Y_segment = SegY
 
+#----------------------------------------------------------------------------
+#   Option 2: For manual segmentation
+#----------------------------------------------------------------------------
+cv2.namedWindow('Segmentation', cv2.WINDOW_NORMAL)
+cv2.setMouseCallback('Segmentation', segmentation_routine)
+slice_no = 0
+t_step = 0
+while(1): 
+    
+    #plt.title('Image details: Image index = ' + np.str(indexc) + ' and t_step = ' + np.str(t_step) )
+    #plt.draw()
+    cv2.resizeWindow('Segmentation', 800, 800)
+    cv2.imshow('Segmentation', cropped_images_Cine_seg[:,:,:,(t_step%stepsTotal), (slice_no%sliceNoTotal)].astype(np.uint8))
+    
+    key = cv2.waitKey(1)
+    if key & 0xFF == 82 :
+        slice_no+=1
+        n=0
+        plt.title('Image details: Image slice_no = ' + np.str(slice_no%sliceNoTotal) + ' and t_step = ' + np.str(t_step%stepsTotal) )
+        plt.draw()
+        
+    #if key & 0xFF == 84 :
+    #    slice_no-=1
+    #    plt.title('Image details: Image slice_no = ' + np.str(slice_no%sliceNoTotal) + ' and t_step = ' + np.str(t_step%stepsTotal) )
+    #    plt.draw()
+    
+    if key & 0xFF == 27 :
+        break
+cv2.destroyAllWindows()
 
-#For manual segmentation
-#cv2.namedWindow('Segmentation', cv2.WINDOW_NORMAL)
-#cv2.setMouseCallback('Segmentation', segmentation_routine)
-#slice_no = 0
-#t_step = 0
-#while(1): 
-#    
-#    #plt.title('Image details: Image index = ' + np.str(indexc) + ' and t_step = ' + np.str(t_step) )
-#    #plt.draw()
-#    cv2.resizeWindow('Segmentation', 800, 800)
-#    cv2.imshow('Segmentation', cropped_images_Cine_seg[:,:,:,(t_step%stepsTotal), (slice_no%sliceNoTotal)].astype(np.uint8))
-#    
-#    key = cv2.waitKey(1)
-#    if key & 0xFF == 82 :
-#        slice_no+=1
-#        n=0
-#        plt.title('Image details: Image slice_no = ' + np.str(slice_no%sliceNoTotal) + ' and t_step = ' + np.str(t_step%stepsTotal) )
-#        plt.draw()
-#        
-#    #if key & 0xFF == 84 :
-#    #    slice_no-=1
-#    #    plt.title('Image details: Image slice_no = ' + np.str(slice_no%sliceNoTotal) + ' and t_step = ' + np.str(t_step%stepsTotal) )
-#    #    plt.draw()
-#    
-#    if key & 0xFF == 27 :
-#        break
-#cv2.destroyAllWindows()
 #-----------------------------------------------------------------------------
-
-
+#   Displaying the drawn segments on the images
+#-----------------------------------------------------------------------------
 cropped_images_Cine = drawSegments(cropped_images_Cine, X_cent, Y_cent, X_segment, Y_segment)
 cropped_images_Cine_default = cropped_images_Cine.copy()
+
 #=============================================================================
 #   Myocardicum tracking 
 #=============================================================================
@@ -359,75 +351,18 @@ plt.close()
 #show_coords()
 
 #=============================================================================
-#   Saving the co-ordinates
+#   Saving the tracking results
 #=============================================================================
-import xlwt
+#   saving the co-ordinates in an Excel file
+#-----------------------------------------------------------------------------
+import WriteResults as WR
 
-os.chdir(path)
-make_dir = "mkdir ManualTracking_results2"
-os.system(make_dir)
-os.chdir('./ManualTracking_results2')
+resultsFolderName = 'ManualTracking_results2'
+WR.writeResults(path, resultsFolderName, stepsTotal, sliceNoTotal, refPt, X_cent, Y_cent, X_segment, Y_segment, X, Y)
 
-Preliminary_settings = xlwt.Workbook(encoding="utf-8")
-
-#Sheet 1: Pan ROI
-sheet1 = Preliminary_settings.add_sheet("Pan Coordinates")
-sheet1.write(0,0, 'Point number')
-sheet1.write(0,1, 'X')
-sheet1.write(0,2, 'Y')
-
-for i in range(0,2):
-    sheet1.write(i+1,0,str(i+1))
-    sheet1.write(i+1,1,str(refPt[i][0]))
-    sheet1.write(i+1,2,str(refPt[i][1]))
-
-#Sheet 2: Centre co-ordinates
-sheet2 = Preliminary_settings.add_sheet("Centre Coordinates")
-sheet2.write(0,0, 'Slice number')
-sheet2.write(0,1, 'X')
-sheet2.write(0,2, 'Y')
-
-for i in range(0,sliceNoTotal):
-    sheet2.write(i+1,0,str(i+1))
-    sheet2.write(i+1,1,(X_cent[i,0]+refPt[0][0]).astype(str))
-    sheet2.write(i+1,2,(Y_cent[i,0]+refPt[0][1]).astype(str))    
-
-#Sheet 3: Segment points
-sheet3 = Preliminary_settings.add_sheet("Segmentation Coordinates")
-
-for j in range(0,sliceNoTotal):
-    
-    r = j*5
-    sheet3.write(0,r, 'Slice' + str(j+1))
-    sheet3.write(1,r, 'Point number')
-    sheet3.write(1,r+1, 'X')
-    sheet3.write(1,r+2, 'Y')
-
-    for i in range(0,6):
-        sheet3.write(i+2,r,str(i+1))
-        sheet3.write(i+2,r+1, (X_segment[i,j]+refPt[0][0]).astype(str))
-        sheet3.write(i+2,r+2, (Y_segment[i,j]+refPt[0][1]).astype(str))    
-
-Preliminary_settings.save("Preliminary_settings.xls")
-
-
-Segmentation_results = xlwt.Workbook(encoding="utf-8")
-
-for s in range(0, sliceNoTotal):
-    sheet = Segmentation_results.add_sheet("slice" + str(s+1))
-    
-    for j in range(0, stepsTotal):
-        sheet.write(0,3*j,"timeStep" + str(j))
-        sheet.write(1,3*j,"X-coord")
-        sheet.write(1,3*j + 1, "Y-coord")
-        
-        for i in range(0,30):
-            sheet.write(i+2, 3*j, X[i,j,s].astype(str))
-            sheet.write(i+2, 3*j +1, Y[i,j,s].astype(str))
-    
-Segmentation_results.save("Segmentation_results.xls")
-
-
+#-----------------------------------------------------------------------------
+#   saving the results in image format for later inspection 
+#-----------------------------------------------------------------------------
 make_img_dir = "mkdir ResultImages"
 os.system(make_img_dir)
 os.chdir("./ResultImages")
@@ -439,8 +374,9 @@ for folder in range (0,sliceNoTotal):
         img = cropped_images_Cine[:,:,:,i,folder]
         cv2.imwrite( "./slice_" + str(folder+1) +"/image_00"+ str(i) +".png", img )
     
+os.chdir('../../')
 
-#Tracking_co-ordinates = xlwt.Workbook(encoding="utf-8")
+
 
 '''
 Questions
