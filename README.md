@@ -24,4 +24,4 @@ The entire myocardial tracking process is divided into multiple steps
 4) Performing tracking of Myocardial landmark points for all slices and phases
 5) Saving the preliminary settings and tracking results into Excel workbook and saving the images for inspection and video generation
 
-
+![Tracking steps](steps.png)
