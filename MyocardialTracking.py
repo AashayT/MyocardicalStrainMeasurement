@@ -377,12 +377,10 @@ for folder in range (0,sliceNoTotal):
 os.chdir('../../')
 
 
-
 '''
-Questions
+Questions:
 1) Should we draw the segments for each slice location seperately? 
 2) All the slices are not oriented exactly, therefore difficult to use the same segmentation  
 3) How should we save the co-ordinates? In local X,Y, global X,Y ?
-4) Do we also have to reorient the images or we )
-can save the co-ordinates directly?
+4) Do we also have to reorient the images or we can save the co-ordinates directly?
 '''
