@@ -14,3 +14,14 @@ Heart is a very vital organ in the human body. It is responsible for continuous 
 The aim of the current project is to develop a simple program to enable manual extraction and tracking of individual myocardial segments from multi slice stack of 2D short-axis (SAX) cine MRI images. Long term aims of the project are -
   * to facilitate a ground truth generation for myocardial strain measurements, which would be later used for comparative     assessment of sophisticated tracking algorithms 
   * gaining insights into the accuracy of already existing products on CircleCVI and other commercial software packages.
+
+## User manual and process description
+The entire myocardial tracking process is divided into multiple steps
+
+1) Loading the dataset: Dataset contains multiple slice cine data of 2D short axis MRI. Dim [rows, cols, phases, slices]
+2) Selecting the Region of Interest (ROI)
+3) Drawing segments for each slice
+4) Performing tracking of Myocardial landmark points for all slices and phases
+5) Saving the preliminary settings and tracking results into Excel workbook and saving the images for inspection and video generation
+
+
